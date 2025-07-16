@@ -19,7 +19,7 @@ public class DeepSeekAIServiceImpl implements DeepSeekAIService {
     private String referer;
 
     public DeepSeekAIServiceImpl(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.baseUrl("https://openrouter.ai/api/v1").build();
+        this.webClient = webClientBuilder.build();  // Already has baseUrl from config
     }
 
     @Override
@@ -31,6 +31,7 @@ public class DeepSeekAIServiceImpl implements DeepSeekAIService {
         Map<String, Object> body = new HashMap<>();
         body.put("model", "deepseek/deepseek-r1-0528:free");
         body.put("messages", List.of(Map.of("role", "user", "content", prompt)));
+        System.out.println("Using API Key: " + apiKey);
 
         return webClient.post()
                 .uri("/chat/completions")
@@ -40,17 +41,11 @@ public class DeepSeekAIServiceImpl implements DeepSeekAIService {
                 .header("X-Title", "DeepSeekDemo")
                 .bodyValue(body)
                 .retrieve()
-                .bodyToMono(Map.class)
-                .map(response -> {
-                    var choices = (List<Map<String, Object>>) response.get("choices");
-                    if (choices != null && !choices.isEmpty()) {
-                        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                        return (String) message.get("content");
-                    }
-                    return "No response from DeepSeek.";
-                })
+                .bodyToMono(String.class)  // raw response
+                .doOnNext(System.out::println) // print full response
                 .doOnError(Throwable::printStackTrace)
                 .onErrorReturn("Error calling DeepSeek API.")
                 .block();
+
     }
 }
